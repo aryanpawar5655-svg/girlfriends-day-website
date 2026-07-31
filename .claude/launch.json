@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "for-minahil-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "C:/CLAUDE/for-minahil"],
+      "port": 8765,
+      "url": "http://localhost:8765"
+    }
+  ]
+}
