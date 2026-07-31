@@ -1,4 +1,4 @@
-# A special message for Minahil 💗
+# A special message for Prakrati 💗
 
 A tiny hand-built one-page site: no build step, no dependencies, just `index.html`, `styles.css`, `script.js`. Works locally by double-clicking `index.html` or hosted on GitHub Pages.
 
