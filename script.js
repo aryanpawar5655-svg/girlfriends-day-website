@@ -11,6 +11,7 @@
     if (push && history[history.length - 1] !== name) history.push(name);
     backBtn.classList.toggle('hidden', name === 'intro' || name === 'finale');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof resetDodgy === 'function') resetDodgy();
     if (name === 'finale') burstHearts(80);
     if (name === 'memories') resetCarousel();
   };
@@ -29,25 +30,50 @@
   });
 
   // ---------- Dodgy "No" button ----------
+  // Orbits its sibling "Yes" button within a small radius, always on-screen.
   const clampInViewport = (x, y, w, h) => {
     const vw = window.innerWidth, vh = window.innerHeight;
-    const pad = 16;
+    const padX = 8, padTop = 70, padBottom = 24;
     return [
-      Math.max(pad, Math.min(vw - w - pad, x)),
-      Math.max(pad + 60, Math.min(vh - h - pad - 60, y)),
+      Math.max(padX, Math.min(vw - w - padX, x)),
+      Math.max(padTop, Math.min(vh - h - padBottom, y)),
     ];
   };
 
   const dodge = (el) => {
+    // Portal to <body> so position:fixed is relative to the viewport,
+    // not the .card (whose backdrop-filter creates a containing block).
+    if (el.parentElement !== document.body) {
+      el.dataset.homeParent = 'card';
+      const holder = document.createElement('span');
+      holder.className = 'dodgy-holder';
+      el.parentNode.insertBefore(holder, el);
+      el._dodgyHolder = holder;
+      document.body.appendChild(el);
+    }
+
     const rect = el.getBoundingClientRect();
-    const nx = Math.random() * (window.innerWidth - rect.width);
-    const ny = Math.random() * (window.innerHeight - rect.height);
-    const [cx, cy] = clampInViewport(nx, ny, rect.width, rect.height);
-    // Use fixed position + translate for smooth dodges
+    // Find the sibling Yes button in the currently active scene
+    const scene = document.querySelector('.scene.active');
+    const yes = scene ? scene.querySelector('.btn.primary') : null;
+    const anchor = (yes || el).getBoundingClientRect();
+    const cx = anchor.left + anchor.width / 2;
+    const cy = anchor.top + anchor.height / 2;
+
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const maxR = Math.max(80, Math.min(vw, vh) * 0.22);
+    const minR = Math.max(60, rect.width * 0.7);
+    const r = minR + Math.random() * (maxR - minR);
+    const angle = Math.random() * Math.PI * 2;
+
+    const nx = cx + Math.cos(angle) * r - rect.width / 2;
+    const ny = cy + Math.sin(angle) * r - rect.height / 2;
+    const [x, y] = clampInViewport(nx, ny, rect.width, rect.height);
+
     el.style.position = 'fixed';
-    el.style.left = cx + 'px';
-    el.style.top = cy + 'px';
-    el.style.transform = `rotate(${(Math.random()*20-10).toFixed(1)}deg)`;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.transform = `rotate(${(Math.random() * 16 - 8).toFixed(1)}deg)`;
     el.style.zIndex = 20;
   };
 
@@ -55,9 +81,25 @@
     const trigger = () => dodge(el);
     el.addEventListener('mouseenter', trigger);
     el.addEventListener('focus', trigger);
-    el.addEventListener('touchstart', trigger, { passive: true });
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); }, { passive: false });
     el.addEventListener('click', (e) => { e.preventDefault(); trigger(); });
   });
+
+  // Reset positions AND move dodgy buttons back to their home card
+  const resetDodgy = () => {
+    $$('.dodgy').forEach(el => {
+      el.style.position = '';
+      el.style.left = '';
+      el.style.top = '';
+      el.style.transform = '';
+      el.style.zIndex = '';
+      if (el._dodgyHolder && el._dodgyHolder.parentNode) {
+        el._dodgyHolder.parentNode.insertBefore(el, el._dodgyHolder);
+        el._dodgyHolder.remove();
+        el._dodgyHolder = null;
+      }
+    });
+  };
 
   // ---------- Floating hearts ----------
   const heartsLayer = $('#heartsLayer');
