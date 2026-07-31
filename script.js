@@ -199,13 +199,28 @@
 
   musicBtn.addEventListener('click', () => setMusic(!playing));
 
-  // Try to autoplay music after the first meaningful click
-  let triedAutoplay = false;
-  document.addEventListener('click', () => {
-    if (triedAutoplay || playing) return;
-    triedAutoplay = true;
+  // Try autoplay immediately; if the browser blocks it, start on the
+  // very first user interaction of any kind (click, tap, key press).
+  const kickoffMusic = () => {
+    if (playing) return;
     setMusic(true);
-  }, { once: false });
+  };
+
+  // 1) Attempt right away (works if user already interacted with the site domain)
+  audio.play().then(() => {
+    playing = true;
+    musicBtn.setAttribute('aria-pressed', 'true');
+    label.textContent = 'Playing 💗';
+  }).catch(() => {
+    // 2) Fall back: start on first interaction of any kind
+    const first = () => {
+      kickoffMusic();
+      ['pointerdown','touchstart','keydown','click'].forEach(ev =>
+        document.removeEventListener(ev, first, true));
+    };
+    ['pointerdown','touchstart','keydown','click'].forEach(ev =>
+      document.addEventListener(ev, first, { capture: true, once: false }));
+  });
 
   // ---------- Replay ----------
   $('#replayBtn').addEventListener('click', () => {
